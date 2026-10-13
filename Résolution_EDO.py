@@ -163,7 +163,7 @@ def AB3_spatiotemp_base(f, Y_init , h : float, N : int):
         F0, F1, F2 = F1, F2, f(t_next, Y_next)
         Y, t = Y_next, t_next
     
-    return res 
+    return res[-1]
 
 #=========================================
 # Fonction décriptive de la résolution
@@ -172,17 +172,51 @@ def AB3_spatiotemp_base(f, Y_init , h : float, N : int):
 def solveur(Y,t,h):
 
     # Obtention de l'évolution des paramètres tout au long de l'expérience
-    Y_init = Y.copy()
 
     # Paramètre évolutifs rho, v, R, U - pour moi R est relié à rho
     # Les paramètres sont calculés indépendamment alors que chaque variable dépend des autres, comment faire
     
-    rho_star = AB3_spatiotemp_base(F_global_continuite,Y_init, h,N)
-    v_star = AB3_spatiotemp_base(F_global_euler,Y_init, h, N)
-    R_star = (M_ns_moy/((4/3)*np.pi*rho_star))**(1/3)
-    U_star = AB3_spatiotemp_base(F_global_poisson,Y_init,h,N)
+    rho_star = np.zeros(N)
+    v_star = np.zeros(N)
+    R_star = np.zeros(N)
+    U_star = np.zeros(N)
+    Epsilon_star = np.zeros(N) # problématique dans l'évolution, constante ?
 
-    return rho_star, v_star, R_star, U_star
+    # je ne comprends pas l'utilité de ceci
+    F_euler = np.zeros(N)
+    F_continuite = np.zeros(N)
+    F_poisson = np.zeros(N)
+
+    rho0, v0, R0, epsilon0, R0 = Y
+
+    rho_star[0] = rho0
+    v_star[0] = v0
+    R_star[0] = R0
+    U_star[0] = U0
+    Epsilon_star[0] = epsilon0
+
+    grandeur = [rho_star, v_star, U_star]
+    L_fonc = [0,1,2]
+    for f,n,g in zip(F,L_fonc,grandeur) :
+        Y_rk,_= RK4_spatiotemp_boucle(f,Y_init,h)
+        _, Y1, Y2 = Y_rk
+        # a finir
+    
+
+    # remplir les 3 premières valeurs des tableaux, epsilon constant ? 
+
+    for n in range(2,N-1):
+
+        rho_star[n+1] = AB3_spatiotemp_base(F_global_continuite,Y_init, h,n)
+        v_star[n+1] = AB3_spatiotemp_base(F_global_euler,Y_init, h, n)
+        R_star[n+1] = (M_ns_moy/((4/3)*np.pi*rho_star))**(1/3)
+        U_star[n+1] = AB3_spatiotemp_base(F_global_poisson,Y_init,h,n)
+
+        Y_next = [rho_star[n+1], v_star[n+1], R_star[n+1], Epsilon_star[n+1], U_star[n+1]]
+
+        Y_init = Y_next
+
+    return rho_star, v_star, R_star, U_star, Epsilon_star
 
 #=========================================
 # Utilisation du polynôme Tchebychev (à voir)
@@ -217,6 +251,8 @@ if __name__ == "__main__" :
     # Variables d'algorithme 
     h = 1 # durée donc cohérence avec l'oscillation des étoiles minutes, heures... ? 
     Y = np.array([rho0,v0,R0,epsilon0,U0]) # RK4
+
+    F = [F_global_continuite, F_global_euler, F_global_poisson]
 
 
 
