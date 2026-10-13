@@ -158,6 +158,7 @@ def AB3_spatiotemp_base(f, Y_init :list[list] , h : float, N : int):
 
 if __name__ == "__main__" :
     
+    # Détermination de grandeur modulable
     
     # Grandeurs
     c = 3e8 #m.s-1
