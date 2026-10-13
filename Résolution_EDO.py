@@ -158,6 +158,7 @@ def AB3_spatiotemp_base(f, Y_init :list[list] , h : float, N : int):
 
 if __name__ == "__main__" :
     
+    
     # Grandeurs
     c = 3e8 #m.s-1
     K = 1 # à changer plus tard
