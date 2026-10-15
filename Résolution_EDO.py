@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 # Fonction initiale
 #=========================================
 
-def F_spatiotemp_continuite(rho : list, v : list, R : list, epsilon : list, t : list, rho0 : float, v0 : float, R0 : float, t0 : float) -> list : 
+def F_spatiotemp_continuite(rho : list, v : list, R : list, xi : list, t : list, rho0 : float, v0 : float, R0 : float, t0 : float) -> list : 
     """ Fonction totale de l'équation de continuité, variation temporelle de rho """
     
     # Initialisation des tableaux
@@ -27,18 +27,21 @@ def F_spatiotemp_continuite(rho : list, v : list, R : list, epsilon : list, t : 
     L = np.zeros(len(t))
     
     # paramètres élémentaires
-    depsilon = epsilon[1]-epsilon[0]
-    dt = t[1] -t[0]
+    # dxi = xi[1]-xi[0]
+    # dt = t[1] -t[0]
     
+    dxi = xi[-1]/len(xi)
+    dt = t[-1]/len(t)
+
     # Obtention des termes tel que L = F + S 
-    S[1:-1] = epsilon[1:-1]*rho[1:-1]*((R[2:]-R[:-2])/(2*dt)) - (2*R0*rho[1:-1]*v[1:-1])/(epsilon[1:-1]*R[1:-1]*t0) - (rho[1:-1]*R0)/(t0*R[1:-1])*((v[2:]-v[:-2])/(2*depsilon))
-    F[1:-1] = -(v[1:-1]*R0)/(t0*R[1:-1]) * (rho[2:]-rho[:-2])/(2*depsilon)
+    S[1:-1] = xi[1:-1]*rho[1:-1]*((R[2:]-R[:-2])/(2*dt)) - (2*R0*rho[1:-1]*v[1:-1])/(xi[1:-1]*R[1:-1]*t0) - (rho[1:-1]*R0)/(t0*R[1:-1])*((v[2:]-v[:-2])/(2*dxi))
+    F[1:-1] = -(v[1:-1]*R0)/(t0*R[1:-1]) * (rho[2:]-rho[:-2])/(2*dxi)
     
     L[1:-1] = F[1:-1] + S[1:-1]
     
     return L
 
-def F_spatiotemp_euler(rho : list, v : list, R : list, epsilon : list, U : list, t : list, rho0 : float, v0 : float, R0 : float, U0 : float, t0 : float, K : float, gamma : float) -> list : 
+def F_spatiotemp_euler(rho : list, v : list, R : list, xi : list, t : list, rho0 : float, v0 : float, R0 : float, U0, t0 : float, K : float, gamma : float) -> list : 
     """ Fonction totale de l'équation d'euler, variation temporelle de v """
     
     # Initialisation des tableaux
@@ -47,37 +50,32 @@ def F_spatiotemp_euler(rho : list, v : list, R : list, epsilon : list, U : list,
     L = np.zeros(len(t))
     
     # paramètres élémentaires
-    depsilon = epsilon[1]-epsilon[0]
-    dt = t[1] -t[0]
+
+    # dxi = xi[1]-xi[0]
+    # dt = t[1] -t[0]
+
+    dxi = xi[-1]/len(xi)
+    dt = t[-1]/len(t)
     
     # Obtention des termes tel que L = F + S 
-    S[1:-1] = -(gamma*rho[1:-1]*K*rho0**(gamma-1))/(rho[1:-1]*R[1:-1]) * ((rho[2:] - rho[:-2])/(2*depsilon)) - (rho[1:-1]*rho0)/R[1:-1] * U0 * ((U[2:] - U[:-2])/(2*depsilon)) + (rho[1:-1]*rho0*R0*epsilon[1:-1]*v[1:-1])/t0 * ((R[2:] - R[:-2])/(2*dt))
-    F[1:-1] = -(rho[1:-1]*rho0*R0**2*v[1:-1])/(t0**2*R[1:-1])*((v[2:] - v[:-2])/(2*depsilon))
+    S[1:-1] = -(gamma*rho[1:-1]*K*rho0**(gamma-1))/(rho[1:-1]*R[1:-1]) * ((rho[2:] - rho[:-2])/(2*dxi)) - (rho[1:-1]*rho0)/R[1:-1] ((U0[2:] - U0[:-2])/(2*dxi)) + (rho[1:-1]*rho0*R0*xi[1:-1]*v[1:-1])/t0 * ((R[2:] - R[:-2])/(2*dt)) # définition de U0 problématique
+    F[1:-1] = -(rho[1:-1]*rho0*R0**2*v[1:-1])/(t0**2*R[1:-1])*((v[2:] - v[:-2])/(2*dxi))
     
     L[1:-1] = (F[1:-1] + S[1:-1])*(rho[1:-1]*rho0*(R0/t0))
     
     return L
-    
-    
-def F_spatiotemp_poisson(rho : list, R : list,  epsilon : list, U : list, rho0 : float, U0 : float): # Problématique sur la mise en forme
-    """ Fonction totale de l'équation de poisson, variation spatiale de U """
-    depsilon = epsilon[1]-epsilon[0]
 
-    Up = np.zeros(len(t))
-    F = np.zeros(len(t))
+def F_geometrique(rho,t,rho0) : # R doit évoluer donc on doit lui appliquer une fonction spécifique ? 
+    F = np.zeros(N)
 
-    Up[1:-1] = (U[2:] - U[:-2])/(2*depsilon)
+    dt = t[-1]/len(t)
 
-    Um = np.array([Up[1:-1], U[1:-1]])
+    F[1:-1] = (M_ns_moy/((4/3)*np.pi*rho0))**(1/3)*(-3/rho[1:-1]**4)*((rho[2:]-rho[:-2])/(2*dt))
 
-    # du/depsilon = au + b = f(u,epsilon,t,F) tq F = 4np.pi*G*rho*(rho0/u0)*R^2
-    A = np.array([[-2/epsilon[1:-1], 0],[1,0]])
-    B = np.array([[4*np.pi*G*rho[1:-1]*(rho0/U0)*R[1:-1]**2]])
+    return F
 
-    F[1:-1] = A@Um + B
-
-    return F  
-    
+def F_spatiotemp_poisson(): # Faire plus tard
+    pass
 
 #=========================================
 # Fonction Globale
@@ -86,20 +84,23 @@ def F_spatiotemp_poisson(rho : list, R : list,  epsilon : list, U : list, rho0 :
 def F_global_euler(t, Y):
     """ Fonction intermédiaire pour calculer la fonction voulue """
     
-    rho, v, R, epsilon, U = Y
-    return F_spatiotemp_euler(rho, v, R, epsilon, U, t, h, rho0, v0, R0, U0, t0, K, gamma)
+    rho, v, R = Y
+    return F_spatiotemp_euler(rho, v, R, xi, t, h, rho0, v0, R0, U0, t0, K, gamma)
 
 def F_global_continuite(t, Y):
     """ Fonction intermédiaire pour calculer la fonction voulue """
     
-    rho, v, R, epsilon, U = Y 
-    return F_spatiotemp_continuite(rho, v, R, epsilon, t, rho0, v0, R0, t0)
+    rho, v, R = Y 
+    return F_spatiotemp_continuite(rho, v, R, xi, t, rho0, v0, R0, t0)
 
-def F_global_poisson(t, Y): # comme il n'y a pas de dépendance de t directement, doit-on mettre epsilon ou laisser t ?
+def F_global_geometrique(t,Y):
     """ Fonction intermédiaire pour calculer la fonction voulue """
-    
-    rho, v, R, epsilon, U = Y
-    return F_spatiotemp_poisson(rho,R, epsilon, U, rho0, U0)
+
+    rho, _ , _ = Y
+    return F_geometrique(rho,t,rho0)
+
+def F_global_poisson(t, Y):
+    pass
 
 #=========================================
 # Initialisation Runge-Kutta 3
@@ -131,7 +132,6 @@ def RK4_spatiotemp_boucle(f, Y_init, h):
     
     return Y_approx, t 
     
-
 #=========================================
 # Adam-Bashforth ordre 3
 #=========================================   
@@ -153,7 +153,7 @@ def AB3_spatiotemp_base(f, Y_init , h : float, N : int):
     res = [Y0,Y1,Y2]
     
     # récupération des valeurs 
-    for n in range(2,N):
+    for _ in range(2,N):
         Y_next = Y + h*(23*F2 - 16*F1 + 5*F0)/12
         t_next = t + h
 
@@ -163,63 +163,29 @@ def AB3_spatiotemp_base(f, Y_init , h : float, N : int):
         F0, F1, F2 = F1, F2, f(t_next, Y_next)
         Y, t = Y_next, t_next
     
-    return res[-1]
+    return res[-1] # ne renvois que la dernière valeur
 
 #=========================================
 # Fonction décriptive de la résolution
 #=========================================
 
 def solveur(Y,t,h):
+    # Initialisation des variables à évoluer 
+    rho_tab = np.zeros(N)
+    v_tab = np.zeros(N)
+    R_tab = np.zeros(N)
 
-    # Obtention de l'évolution des paramètres tout au long de l'expérience
+    # Initialisation des dictionnaires pour l'étude couplée des grandeurs
+    Ys = {"rho" : rho_tab,
+         "v" : v_tab,
+         "R" : R_tab}
 
-    # Paramètre évolutifs rho, v, R, U - pour moi R est relié à rho
-    # Les paramètres sont calculés indépendamment alors que chaque variable dépend des autres, comment faire
-    
-    rho_star = np.zeros(N)
-    v_star = np.zeros(N)
-    R_star = np.zeros(N)
-    U_star = np.zeros(N)
-    Epsilon_star = np.zeros(N) # problématique dans l'évolution, constante ?
+    Ys[all][0] = Y
 
-    # je ne comprends pas l'utilité de ceci
-    F_euler = np.zeros(N)
-    F_continuite = np.zeros(N)
-    F_poisson = np.zeros(N)
-
-    rho0, v0, R0, epsilon0, R0 = Y
-
-    rho_star[0] = rho0
-    v_star[0] = v0
-    R_star[0] = R0
-    U_star[0] = U0
-    Epsilon_star[0] = epsilon0
-
-    grandeur = [rho_star, v_star, U_star]
-    L_fonc = [0,1,2]
-    for f,n,g in zip(F,L_fonc,grandeur) :
-        Y_rk,_= RK4_spatiotemp_boucle(f,Y_init,h)
-        _, Y1, Y2 = Y_rk
-        # a finir
-    
-
-    # remplir les 3 premières valeurs des tableaux, epsilon constant ? 
-
-    for n in range(2,N-1):
-
-        rho_star[n+1] = AB3_spatiotemp_base(F_global_continuite,Y_init, h,n)
-        v_star[n+1] = AB3_spatiotemp_base(F_global_euler,Y_init, h, n)
-        R_star[n+1] = (M_ns_moy/((4/3)*np.pi*rho_star))**(1/3)
-        U_star[n+1] = AB3_spatiotemp_base(F_global_poisson,Y_init,h,n)
-
-        Y_next = [rho_star[n+1], v_star[n+1], R_star[n+1], Epsilon_star[n+1], U_star[n+1]]
-
-        Y_init = Y_next
-
-    return rho_star, v_star, R_star, U_star, Epsilon_star
+    pass 
 
 #=========================================
-# Utilisation du polynôme Tchebychev (à voir)
+# Utilisation du polynôme Tchebychev (à voir plus tard)
 #=========================================
     
 
@@ -233,7 +199,7 @@ if __name__ == "__main__" :
     K = 4.25e-3 # m5.kg^-1.s^-2
     G = 6.67e-11 # m3.kg^-1.s^-2
     Ms = 1.98e30 # kg
-    M_ns_moy = 1.4*Ms # kg
+    M_ns_moy = 1.4*Ms # kg Que l'on suppose constante
     
     # variables initiales
     v0 = c
@@ -241,18 +207,22 @@ if __name__ == "__main__" :
     p0 = K*rho0**gamma
     R0 = 10e3 # m
     t0 = R0/v0 # s
-    U0 = v0**2 # s2
-    epsilon0 = 1/R0 # à vérifier (m^-1)
+
+    rho_c = 1.9891e18 # kg/m-3
+    r0 = np.sqrt((np.pi*K)/(2*G))
+    U0 = -2*K*rho_c*(1+np.sinc(np.pi*((R*xi)/r0))) # s2 # utilisation de variable qui ne sont pas encore défini
+    xi0 = 1/R0 # à vérifier (m^-1) # initialiser correctement
     
     # Nombre d'itération
     N = 1000
     t = np.linspace(1,100,N) # s
+
+    xi = np.linspace(0,1,N) # discrétisation à revoir
     
     # Variables d'algorithme 
     h = 1 # durée donc cohérence avec l'oscillation des étoiles minutes, heures... ? 
-    Y = np.array([rho0,v0,R0,epsilon0,U0]) # RK4
+    Y = np.array([rho0,v0,R0,U0]) # RK4
 
-    F = [F_global_continuite, F_global_euler, F_global_poisson]
 
 
 
