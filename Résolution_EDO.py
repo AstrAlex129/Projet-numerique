@@ -272,7 +272,7 @@ def AB3_spatiotemp_base(f, Y_init , h, N): # Pour une grandeur
         N (int) : Nombre d'itération de simulation
 
     Returns :
-        list[list] (res) - res est l'ensemble des valeurs de grandeurs obtenu pour l'étude d'une valeur de référence
+        list[list] : (res) - res est l'ensemble des valeurs de grandeurs obtenu pour l'étude d'une valeur de référence
     """  
     Y_rk, t = RK4_spatiotemp_boucle(f,Y_init,h)
     Y0, Y1, Y2 = Y_rk
@@ -321,6 +321,70 @@ def AB3_spatiotemp_base(f, Y_init , h, N): # Pour une grandeur
 
 #=========================================
 # Utilisation du polynôme Tchebychev (à voir plus tard)
+#=========================================
+
+#=========================================
+# Mise en place des sphères représentatives
+#=========================================
+
+def sphere_numerique(R_fixe,theta,phi):
+    """
+    Représentation d'une sphère fixe numérique (sans le plot ou avec, à voir) via les grandeurs utilisées.
+    Permet de mettre en évidence l'étude futur de l'oscillation.
+
+    Args :
+        R_fixe (float) : Rayon de la sphère fixe.
+        theta (list) : Paramètre descriptif (et non calculé) pour la création de la sphère [0,pi]
+        phi (list) : idem mais [0,2pi]
+
+    Returns :
+        tuple(float) : (x,y,z) - permet de fournir les éléments nécessaire pour la création de la sphère fixe (si pas de plot), ou de l'afficher directement. 
+    """
+    # Variable d'affichage initialisation
+    x_tab_fixe = np.zeros(N)
+    y_tab_fixe = np.zeros(N)
+    z_tab_fixe = np.zeros(N)
+
+    # Variable d'affichage évolution
+    x_tab_fixe = R_fixe*np.sin(theta)*np.cos(phi)
+    y_tab_fixe = R_fixe*np.sin(theta)*np.sin(phi)
+    z_tab_fixe = R_fixe*np.cos(theta)
+
+    return (x_tab_fixe, y_tab_fixe, z_tab_fixe)
+
+def sphere_physique(R,theta,phi):
+    """
+    Représentation d'une sphère oscillante physique (sans le plot ou avec, à voir) via les grandeurs utilisées.
+    Permet de mettre en évidence l'étude futur de l'oscillation en 'temps réel'.
+
+    Args :
+        R (list) : Rayon de la sphère au cours de l'évolution. Représentation itérative.
+        theta (list) : Paramètre descriptif (et non calculé) pour la création de la sphère [0,pi].
+        phi (list) : idem mais [0,2pi].
+
+    Returns :
+        list : () - permet de fournir les éléments nécessaire pour la création de la sphère (si pas de plot), ou de l'afficher directement.
+    """
+    # Variable d'affichage initialisation
+    x_mat = np.zeros((N,N))
+    y_mat = np.zeros((N,N))
+    z_mat = np.zeros((N,N))
+
+    # Variable d'affichage évolution 
+    for n in range (N):
+        x_mat[n,:] = R[n]*np.sin(theta)*np.cos(phi)
+        y_mat[n,:] = R[n]*np.sin(theta)*np.sin(phi)
+        z_mat[n,:] = R[n]*np.cos(theta)
+
+        # ou 
+        # x_mat[n,:] = R[n]*np.sin(theta[:])*np.cos(phi[:])
+        # y_mat[n,:] = R[n]*np.sin(theta[:])*np.sin(phi[:])
+        # z_mat[n,:] = R[n]*np.cos(theta[:])
+
+    return (x_mat, y_mat, z_mat)
+
+#=========================================
+# Etude du système
 #=========================================
     
 
@@ -380,6 +444,12 @@ if __name__ == "__main__" :
     rho_evolution = [Yg[0] for Yg in res_grandeur] 
     v_evolution = [Yg[1] for Yg in res_grandeur] 
     R_evolution = [Yg[2] for Yg in res_grandeur] 
+
+    # Paramètre pour les sphères représentatives
+    
+    # Variable repère sphérique
+    theta = np.arange(0,np.pi,N) # rad
+    phi = np.arange(0,2*np.pi,N) # rad
 
 
 
