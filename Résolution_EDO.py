@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 #=========================================
 
 #=========================================
-# Fonction initiale
+# Fonctions initiales
 #=========================================
 
 def F_spatiotemp_continuite(rho, v, w , R, xi, t): 
@@ -38,10 +38,8 @@ def F_spatiotemp_continuite(rho, v, w , R, xi, t):
     S = np.zeros(len(rho)) # terme source de la fonction - initialisation 
     F = np.zeros(len(rho)) # terme principal de la fonction - initialisation
     L = np.zeros(len(rho)) # terme total souhaité - initialisation
-
-    # Obtention de la source selon le fichier de référence fourni
-    
-    ### [A faire] ###
+   
+    ### [A faire : Modification de fonction via w, tau et sigma] ###
 
     # Obtention des termes tel que L = F + S 
     S[1:-1] = xi[1:-1]*rho[1:-1]*((R[2:]-R[:-2])/(2*dt)) - (2*R0*rho[1:-1]*v[1:-1])/(xi[1:-1]*R[1:-1]*t0) - (rho[1:-1]*R0)/(t0*R[1:-1])*((v[2:]-v[:-2])/(2*dxi))
@@ -72,12 +70,10 @@ def F_spatiotemp_euler(rho, v, w, R, xi, t):
     F = np.zeros(len(v))    # terme principal de la fonction - initialisation
     L = np.zeros(len(v))    # terme finale souhaité - initialisation
 
-    # Idem que la fonction de continuité
-
-    ### [A faire] ###
+    ### [A faire : Modification de fonction via w, tau et sigma] ###
     
     # Obtention des termes tel que L = F + S 
-    S[1:-1] = -(gamma*rho[1:-1]*K*rho0**(gamma-1))/(rho[1:-1]*R[1:-1]) * ((rho[2:] - rho[:-2])/(2*dxi)) - (rho[1:-1]*rho0)/R[1:-1] ((U0[2:] - U0[:-2])/(2*dxi)) + (rho[1:-1]*rho0*R0*xi[1:-1]*v[1:-1])/t0 * ((R[2:] - R[:-2])/(2*dt)) 
+    S[1:-1] = -(gamma*rho[1:-1]*K*rho0**(gamma-1))/(rho[1:-1]*R[1:-1]) * ((rho[2:] - rho[:-2])/(2*dxi)) - (rho[1:-1]*rho0)/R[1:-1] ((U0_eq[2:] - U0_eq[:-2])/(2*dxi)) + (rho[1:-1]*rho0*R0*xi[1:-1]*v[1:-1])/t0 * ((R[2:] - R[:-2])/(2*dt)) 
     F[1:-1] = -(rho[1:-1]*rho0*R0**2*v[1:-1])/(t0**2*R[1:-1])*((v[2:] - v[:-2])/(2*dxi))
     
     L[1:-1] = (F[1:-1] + S[1:-1])*(rho[1:-1]*rho0*(R0/t0))
@@ -300,7 +296,7 @@ def AB3_spatiotemp_base(f, Y_init , h, N): # Pour une grandeur
     
     res = [Y0,Y1,Y2]
     
-    # Récupération des valeurs 
+    # Récupération des valeurs | Problématique sur l'utilisation du temps (ou pas)
     for _ in range(2,N):
         Y_next_rho = Y[0] + h*(23*F2_rho - 16*F1_rho + 5*F0_rho)/12
         Y_next_v   = Y[1] + h*(23*F2_v   - 16*F1_v   + 5*F0_v)/12
@@ -340,7 +336,7 @@ def sphere_numerique(R_fixe,theta,phi):
     Returns :
         tuple(float) : (x,y,z) - permet de fournir les éléments nécessaire pour la création de la sphère fixe (si pas de plot), ou de l'afficher directement. 
     """
-    # Variable d'affichage initialisation
+    # Variable d'affichage initialisation [à voir si c'est utile]
     x_tab_fixe = np.zeros(N)
     y_tab_fixe = np.zeros(N)
     z_tab_fixe = np.zeros(N)
@@ -365,7 +361,7 @@ def sphere_physique(R,theta,phi):
     Returns :
         list : () - permet de fournir les éléments nécessaire pour la création de la sphère (si pas de plot), ou de l'afficher directement.
     """
-    # Variable d'affichage initialisation
+    # Variable d'affichage initialisation [à voir si c'est utile]
     x_mat = np.zeros((N,N))
     y_mat = np.zeros((N,N))
     z_mat = np.zeros((N,N))
@@ -403,15 +399,24 @@ if __name__ == "__main__" :
     # variables initiales
     v0 = c                          # m.s^-1        - vitesse initiale de l'oscillation
     rho0 = 1.66e17                  # kg.m^-3       - densité initiale de l'étoile à neutron 
-    U0 = v0**2                      # m2^s-1        - Potentiel initial 
+    # U0 = v0**2                      # m2^s-1        - Potentiel initial 
     p0 = K*rho0**gamma              # kg.m^-1.s^-2  - préssion initiale
     R0 = 10e3                       # m             - rayon initial de l'étoile à neutron 
     t0 = R0/v0                      # s             - temps initial d'étude
     xi0 = 1/R0                      # à vérifier (m^-1) # initialiser correctement
 
+    # Nombre d'itération
+    N = 1000
+    t = np.linspace(0,100,N) # s
+    xi = np.linspace(0,1,N) # 1 
+        
+    # Paramètres élémentaires    
+    dxi = xi[-1]/len(xi)    # Pas de [Paramètre]
+    dt = t[-1]/len(t)       # Pas de temps
+
     # grandeur numérique remplacement
     tau = np.random.uniform() # 1
-    r = 0. # 
+    r = xi*R0
 
     # Implémentation de sigma, tau, w et r dans la suite, ainsi que dans les fonctions précédentes
     # Relecture de le document de référence
@@ -420,20 +425,11 @@ if __name__ == "__main__" :
     rho_c = 1.9891e18                                       # kg/m-3 - densité de l'étoile à neutron à l'équilibre                     
     r0 = np.sqrt((np.pi*K)/(2*G))                           # m - rayon numérique initiale    
     rho0_eq = rho_c*np.sinc(np.pi*(r/r0))
-    U0_eq = -2*K*rho_c*(1+np.sinc(np.pi*((R*xi)/r0))) # s2 # utilisation de variable qui ne sont pas encore défini
+    U0_eq = -2*K*rho_c*(1+np.sinc(np.pi*(r/r0)))
     w_eq = 0 
 
-    # Nombre d'itération
-    N = 1000
-    t = np.linspace(0,100,N) # s
-    xi = np.linspace(0,1,N) # 1 
-    
-    # Paramètres élémentaires    
-    dxi = xi[-1]/len(xi)    # Pas de [Paramètre]
-    dt = t[-1]/len(t)       # Pas de temps
-
     # Variables d'algorithme 
-    h = 1 # durée donc cohérence avec l'oscillation des étoiles minutes, heures... ? 
+    h = tau*dt # durée donc cohérence avec l'oscillation des étoiles minutes, heures... ? 
     Y = np.array([rho0,v0,R0]) # RK4
     f = [F_global_continuite, F_global_euler, F_global_geometrique]
 
