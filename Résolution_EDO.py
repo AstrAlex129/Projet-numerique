@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 # Fonctions initiales
 #=========================================
 
-def F_spatiotemp_continuite(rho, v, w , R, xi, t): 
+def F_spatiotemp_continuite(rho, w, R, xi, t): 
     """ 
     Implémente la fonction totale de l'équation de continuité suite à la transition physique -> numérique.
     Permet de déterminer l'évolution de rho.
@@ -38,18 +38,23 @@ def F_spatiotemp_continuite(rho, v, w , R, xi, t):
     S = np.zeros(len(rho)) # terme source de la fonction - initialisation 
     F = np.zeros(len(rho)) # terme principal de la fonction - initialisation
     L = np.zeros(len(rho)) # terme total souhaité - initialisation
-   
-    ### [A faire : Modification de fonction via w, tau et sigma] ###
 
+    ## Version v , xi ##
     # Obtention des termes tel que L = F + S 
-    S[1:-1] = xi[1:-1]*rho[1:-1]*((R[2:]-R[:-2])/(2*dt)) - (2*R0*rho[1:-1]*v[1:-1])/(xi[1:-1]*R[1:-1]*t0) - (rho[1:-1]*R0)/(t0*R[1:-1])*((v[2:]-v[:-2])/(2*dxi))
-    F[1:-1] = -(v[1:-1]*R0)/(t0*R[1:-1]) * (rho[2:]-rho[:-2])/(2*dxi)
+    # S[1:-1] = xi[1:-1]*rho[1:-1]*((R[2:]-R[:-2])/(2*dt)) - (2*R0*rho[1:-1]*v[1:-1])/(xi[1:-1]*R[1:-1]*t0) - (rho[1:-1]*R0)/(t0*R[1:-1])*((v[2:]-v[:-2])/(2*dxi))
+    # F[1:-1] = -(v[1:-1]*R0)/(t0*R[1:-1]) * (rho[2:]-rho[:-2])/(2*dxi)
+    
+    # L[1:-1] = F[1:-1] + S[1:-1]
+
+    ## Version w , xi ## v0 = w0*r0 ? 
+    S[1:-1] = xi[1:-1]*rho[1:-1]*((R[2:]-R[:-2])/(2*dt)) - (2*R0*rho[1:-1]*(w[1:-1]*xi[1:-1]*R[1:-1]))/(xi[1:-1]*R[1:-1]*t0) - (rho[1:-1]*(w[1:-1]+(w[2:]-w[:-2])/(2*dxi))*(R0/t0))
+    F[1:-1] = -((w[1:-1]*xi[1:-1]*R[1:-1])*R0)/(t0*R[1:-1]) * (rho[2:]-rho[:-2])/(2*dxi)
     
     L[1:-1] = F[1:-1] + S[1:-1]
     
     return L
 
-def F_spatiotemp_euler(rho, v, w, R, xi, t): 
+def F_spatiotemp_euler(rho, w, R, xi, t): 
     """ 
     Implémente la fonction totale de l'équation d'Euler suite à la transition physique -> numérique.
     Permet de déterminer l'évolution de v.
@@ -66,32 +71,44 @@ def F_spatiotemp_euler(rho, v, w, R, xi, t):
         list : (L) - L est l'expression numérique de la fonction destinées
     """     
     # Initialisation des tableaux
-    S = np.zeros(len(v))    # terme source de la fonction - initialisation
-    F = np.zeros(len(v))    # terme principal de la fonction - initialisation
-    L = np.zeros(len(v))    # terme finale souhaité - initialisation
+    S = np.zeros(len(w))    # terme source de la fonction - initialisation
+    F = np.zeros(len(w))    # terme principal de la fonction - initialisation
+    L = np.zeros(len(w))    # terme finale souhaité - initialisation
 
-    ### [A faire : Modification de fonction via w, tau et sigma] ###
+    ### Version v, xi ###
     
     # Obtention des termes tel que L = F + S 
-    S[1:-1] = -(gamma*rho[1:-1]*K*rho0**(gamma-1))/(rho[1:-1]*R[1:-1]) * ((rho[2:] - rho[:-2])/(2*dxi)) - (rho[1:-1]*rho0)/R[1:-1] ((U0_eq[2:] - U0_eq[:-2])/(2*dxi)) + (rho[1:-1]*rho0*R0*xi[1:-1]*v[1:-1])/t0 * ((R[2:] - R[:-2])/(2*dt)) 
-    F[1:-1] = -(rho[1:-1]*rho0*R0**2*v[1:-1])/(t0**2*R[1:-1])*((v[2:] - v[:-2])/(2*dxi))
+    # S[1:-1] = -(gamma*rho[1:-1]*K*rho0**(gamma-1))/(rho[1:-1]*R[1:-1]) * ((rho[2:] - rho[:-2])/(2*dxi)) - (rho[1:-1]*rho0)/R[1:-1] *((U0_eq[2:] - U0_eq[:-2])/(2*dxi)) + (rho[1:-1]*rho0*R0*xi[1:-1]*v[1:-1])/t0 * ((R[2:] - R[:-2])/(2*dt)) 
+    # F[1:-1] = -(rho[1:-1]*rho0*R0**2*v[1:-1])/(t0**2*R[1:-1])*((v[2:] - v[:-2])/(2*dxi))
     
-    L[1:-1] = (F[1:-1] + S[1:-1])*(rho[1:-1]*rho0*(R0/t0))
+    # L[1:-1] = (F[1:-1] + S[1:-1])*(rho[1:-1]*rho0*(R0/t0))
+
+    ### Version w, xi ###
+    S[1:-1] = -(gamma*rho[1:-1]*K*rho0**(gamma-1))/(rho[1:-1]*R[1:-1]) * ((rho[2:] - rho[:-2])/(2*dxi)) - (rho[1:-1]*rho0)/R[1:-1]*((U0_eq[2:] - U0_eq[:-2])/(2*dxi)) + (rho[1:-1]*rho0*R0*xi[1:-1]*(w[1:-1]*xi[1:-1]*R[1:-1]))/t0 * ((R[2:] - R[:-2])/(2*dt)) - ((R[2:] - R[:-2])/(2*dt))*w[1:-1]*xi[1:-1]
+    F[1:-1] = -(rho[1:-1]*rho0*R0**2*(w[1:-1]*xi[1:-1]))/(t0**2)*(R[1:-1]*w[1:-1] + xi[1:-1]*R[1:-1]*((w[2:]-w[:-2])/(2*dxi))) 
+
+    L[1:-1] = (F[1:-1] + S[1:-1])/(rho[1:-1]*rho0*(R0/t0))/(xi[1:-1]*R[1:-1])
     
     return L
 
-def F_geometrique(v_inst, R_prec) : # correspond à la dernière valeur de v tel que v va être un float
+def F_geometrique(w_inst, xi_inst, R_prec) : # correspond à la dernière valeur de v tel que v va être un float
     """
     Implémente la fonction géométrique nécessaire pour l'obtention de R(t).
 
     Args :
+        w_inst (float) : [A définir] v_inst/(xi_inst*R_prec) ?
+        xi_inst (float) : Xi instantannée
         v_inst (float) : Vitesse instantannée 
         R_prec (float) : Rayon instantannée de l'étoile à neutron à l'instant précédent
 
     Returns :
         float (R_inst) - R_inst est le rayon instantannée obtenu à une vitesse donnée à l'instant t
     """
-    R_inst = R_prec + v_inst*dt
+    ## Version v ##
+    # R_inst = R_prec + v_inst[-1]*dt
+
+    ## Version w ##
+    R_inst = R_prec + w_inst[-1]*xi_inst[-1]*R_prec*dt
     return R_inst
 
 def F_spatiotemp_poisson(rho, R, U): # Faire plus tard. Pour l'instant U = U_eq
@@ -124,8 +141,8 @@ def F_global_euler(t, Y):
     Returns :
         function : (F_spatiotemp_euler) - Permet de calculer la fonction global et d'obtenir son return 
     """
-    rho, v, R = Y
-    return F_spatiotemp_euler(rho, v, R, xi, t)
+    rho, w, R = Y
+    return F_spatiotemp_euler(rho, w, R, xi, t)
 
 def F_global_continuite(t, Y):
     """ 
@@ -138,10 +155,10 @@ def F_global_continuite(t, Y):
     Returns :
         function : (F_spatiotemp_continuite) - Permet de calculer la fonction global et d'obtenir son return 
     """
-    rho, v, R = Y 
-    return F_spatiotemp_continuite(rho, v, R, xi, t)
+    rho, w, R = Y 
+    return F_spatiotemp_continuite(rho, w, R, xi, t)
 
-def F_global_geometrique(t,Y,R_prec):
+def F_global_geometrique(t,Y):
     """ 
     Fonction intermédiaire pour calculer la fonction globale géométrique.
         
@@ -153,8 +170,9 @@ def F_global_geometrique(t,Y,R_prec):
     Returns :
         function : (F_geometrique) - Permet de calculer la fonction global et d'obtenir son return 
     """
-    _ , v , _ = Y
-    return F_geometrique(v,R_prec)
+    _ , w , R = Y
+    R_prec = R[-1]
+    return F_geometrique(w, xi,R_prec)
 
 def F_global_poisson(t, Y):
     """ 
@@ -194,36 +212,40 @@ def RK4_spatiotemp_base(f,Y,t,h): # pour chaque grandeur (faire manuellement)
     # Etapes principales pour le RK4
     # Ordre 1
     k1_rho = f[0](t,Y)
-    k1_v = f[1](t,Y)
+    k1_w = f[1](t,Y)
     k1_R = f[2](t,Y)
 
     # Ordre 2
-    Y_temp_1 = [Y[0] + (h*k1_rho)/2, Y[1] + (h*k1_v)/2, Y[2] + (h*k1_R)/2] # Mise au point nécessaire pour chaque ordre supérieur
+    Y_temp_1 = [Y[0] + (h*k1_rho)/2, Y[1] + (h*k1_w)/2, Y[2] + (h*k1_R)/2]
+    # Y_temp_1 = [Y[0] + (h*k1_rho)/2, Y[1] + (h*k1_v)/2]  
 
     k2_rho = f[0](t+h/2,Y_temp_1)
-    k2_v = f[1](t+h/2,Y_temp_1)
+    k2_w = f[1](t+h/2,Y_temp_1)
     k2_R = f[2](t+h/2,Y_temp_1)
 
     # Ordre 3
-    Y_temp_2 = [Y_temp_1[0] + (h*k2_rho)/2, Y_temp_1[1] + (h*k2_v)/2, Y_temp_1[2] + (h*k2_R)/2]
+    Y_temp_2 = [Y[0] + (h*k2_rho)/2, Y[1] + (h*k2_w)/2, Y[2] + (h*k2_R)/2]
+    # Y_temp_2 = [Y[0] + (h*k2_rho)/2, Y[1] + (h*k2_v)/2]
 
     k3_rho = f[0](t+h/2,Y_temp_2)
-    k3_v = f[1](t+h/2,Y_temp_2)
+    k3_w = f[1](t+h/2,Y_temp_2)
     k3_R = f[2](t+h/2,Y_temp_2)
 
     # Ordre 4
-    Y_temp_3 = [Y_temp_2[0] + (h*k3_rho), Y_temp_2[1] + (h*k3_v), Y_temp_2[2] + (h*k3_R)]
+    Y_temp_3 = [Y[0] + (h*k3_rho), Y[1] + (h*k3_w), Y[2] + (h*k3_R)]
+    # Y_temp_3 = [Y[0] + (h*k3_rho), Y[1] + (h*k3_v)]
 
     k4_rho = f[0](t+h,Y_temp_3)
-    k4_v = f[1](t+h,Y_temp_3)
+    k4_w = f[1](t+h,Y_temp_3)
     k4_R = f[2](t+h,Y_temp_3) 
 
     # Obtention de l'évolution couplé de chaque variable selon l'évolution
     Y_next_rho = Y[0] + (h/6)*(k1_rho +2*k2_rho+ 2*k3_rho + k4_rho)
-    Y_next_v = Y[1] + (h/6)*(k1_v +2*k2_v+ 2*k3_v + k4_v)
+    Y_next_w = Y[1] + (h/6)*(k1_w +2*k2_w+ 2*k3_w + k4_w)
     Y_next_R = Y[2] + (h/6)*(k1_R +2*k2_R+ 2*k3_R + k4_R)
 
-    Y_next = [Y_next_rho, Y_next_v, Y_next_R]
+    Y_next = [Y_next_rho, Y_next_w, Y_next_R]
+    # Y_next = [Y_next_rho, Y_next_v]
     t_next = t+h
 
     return Y_next, t_next ## revoir l'implémentation de Y et l'utilisation future de Y_next comportant trois Y. Dois-je utiliser chaque Y pour chaque grandeur ou le tout pour chaque ?
@@ -248,8 +270,10 @@ def RK4_spatiotemp_boucle(f, Y_init, h): # pour une grandeur
     Y=Y_init.copy()
     
     for _ in range(3):
+        # Y_approx_l.append([Y[0].copy(),Y[1].copy()])
         Y_approx_l.append([Y[0].copy(),Y[1].copy(),Y[2].copy()]) # ajouter chaque composante de variable individuellement mais pour "un seul" élément
-        Y,t = RK4_spatiotemp_base(f,Y,t,h)
+        Y_next,t = RK4_spatiotemp_base(f,Y,t,h)
+        Y = Y_next
     
     return Y_approx_l, t 
     
@@ -277,40 +301,48 @@ def AB3_spatiotemp_base(f, Y_init , h, N): # Pour une grandeur
     # Obtention des primaires
     #F0
     F0_rho = f[0](t0, Y0)
-    F0_v = f[1](t0, Y0)
+    F0_w = f[1](t0, Y0)
     F0_R = f[2](t0, Y0)
 
     #F1
     F1_rho = f[0](t1, Y1)
-    F1_v = f[1](t1, Y1)
+    F1_w = f[1](t1, Y1)
     F1_R = f[2](t1, Y1)
 
     #F2
     F2_rho = f[0](t2, Y2)
-    F2_v = f[1](t2, Y2)
+    F2_w = f[1](t2, Y2)
     F2_R = f[2](t2, Y2)
 
     # Démarrage à n = 2, et paramètres 
     Y = [Y2[0].copy(), Y2[1].copy(), Y2[2].copy()]
+    # Y = [Y2[0].copy(), Y2[1].copy()]
     t = 2*h
+
     
     res = [Y0,Y1,Y2]
     
     # Récupération des valeurs | Problématique sur l'utilisation du temps (ou pas)
     for _ in range(2,N):
         Y_next_rho = Y[0] + h*(23*F2_rho - 16*F1_rho + 5*F0_rho)/12
-        Y_next_v   = Y[1] + h*(23*F2_v   - 16*F1_v   + 5*F0_v)/12
-        Y_next_R   = Y[2] + h*(23*F2_R   - 16*F1_R   + 5*F0_R)/12
+        Y_next_w = Y[1] + h*(23*F2_w   - 16*F1_w   + 5*F0_w)/12
+        Y_next_R = Y[2] + h*(23*F2_R   - 16*F1_R   + 5*F0_R)/12
 
-        Y_next = [Y_next_rho, Y_next_v, Y_next_R]
+        Y_next = [Y_next_rho, Y_next_w, Y_next_R]
+        # Y_next = [Y_next_rho, Y_next_v]
 
-        res.append([Y_next_rho.copy(), Y_next_v.copy(), Y_next_R.copy()]) # .copy() uniquement des listes pas des tableaux
+        res.append([Y_next_rho.copy(), Y_next_w.copy(), Y_next_R.copy()])
+        # res.append([Y_next_rho.copy(), Y_next_v.copy()])
         t_next = t + h
 
         # mise à jour pour le prochain pas
-        F0_rho, F0_v, F0_R = F1_rho, F1_v, F1_R
-        F1_rho, F1_v, F1_R= F2_rho, F2_v, F2_R 
-        F2_rho, F2_v, F2_R= f[0](t_next, Y_next), f[1](t_next, Y_next), f[2](t_next, Y_next)
+        F0_rho, F0_w, F0_R = F1_rho, F1_w, F1_R
+        F1_rho, F1_w, F1_R= F2_rho, F2_w, F2_R 
+        F2_rho, F2_w, F2_R= f[0](t_next, Y_next), f[1](t_next, Y_next), f[2](t_next, Y_next)
+
+        # F0_rho, F0_v = F1_rho, F1_v
+        # F1_rho, F1_v = F2_rho, F2_v 
+        # F2_rho, F2_v = f[0](t_next, Y_next), f[1](t_next, Y_next)
         Y, t = Y_next, t_next
     
     return res
@@ -407,15 +439,16 @@ if __name__ == "__main__" :
 
     # Nombre d'itération
     N = 1000
-    t = np.linspace(0,100,N) # s
+    
     xi = np.linspace(0,1,N) # 1 
         
     # Paramètres élémentaires    
     dxi = xi[-1]/len(xi)    # Pas de [Paramètre]
-    dt = t[-1]/len(t)       # Pas de temps
+    dt = 100/N              # Pas de temps
 
     # grandeur numérique remplacement
     tau = np.random.uniform() # 1
+    sigma = np.linspace(0,1,N)
     r = xi*R0
 
     # Implémentation de sigma, tau, w et r dans la suite, ainsi que dans les fonctions précédentes
@@ -430,7 +463,15 @@ if __name__ == "__main__" :
 
     # Variables d'algorithme 
     h = tau*dt # durée donc cohérence avec l'oscillation des étoiles minutes, heures... ? 
-    Y = np.array([rho0,v0,R0]) # RK4
+    ### Il est nécessaire que le Y_init soit une liste de liste et non une liste de float... Initialiser les valeurs à un tableau de zéros puis fournir la condition initiale ? ###
+
+    # Initialisation des tableaux initiales
+    rho0_list = rho0_eq*np.ones(N)
+    w0_list = w_eq*np.ones(N)
+    R0_list = R0*np.ones(N)
+
+    
+    Y = np.array([rho0_list,w0_list,R0_list]) # RK4
     f = [F_global_continuite, F_global_euler, F_global_geometrique]
 
     # Obtention des grandeurs à étudier 
@@ -446,7 +487,6 @@ if __name__ == "__main__" :
     # Variable repère sphérique
     theta = np.arange(0,np.pi,N) # rad
     phi = np.arange(0,2*np.pi,N) # rad
-
 
 
 
