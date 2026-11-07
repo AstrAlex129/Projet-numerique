@@ -47,11 +47,11 @@ def F_spatiotemp_continuite(rho, w, R, xi, t):
     # L[1:-1] = F[1:-1] + S[1:-1]
 
     ## Version w , xi ## v0 = w0*r0 ? 
-    S[1:-1] = xi[1:-1]*rho[1:-1]*((R[2:]-R[:-2])/(2*dt)) - (2*R0*rho[1:-1]*(w[1:-1]*xi[1:-1]*R[1:-1]))/(xi[1:-1]*R[1:-1]*t0) - (rho[1:-1]*(w[1:-1]+(w[2:]-w[:-2])/(2*dxi))*(R0/t0))
-    F[1:-1] = -((w[1:-1]*xi[1:-1]*R[1:-1])*R0)/(t0*R[1:-1]) * (rho[2:]-rho[:-2])/(2*dxi)
+    S[1:-1] = -2*rho[1:-1]*w[1:-1]*(R0/t0) - rho[1:-1]*(R0/t0)*(w[1:-1]+xi[1:-1]*((w[2:]-w[:-2])/(2*dxi))) + xi[1:-1]*rho[1:-1]*((R[2:]-R[:-2])/(2*dt))
+    F[1:-1] = -xi[1:-1]*w[1:-1]*(R0/t0)*((rho[2:]-rho[:-2])/(2*dxi))
     
     L[1:-1] = F[1:-1] + S[1:-1]
-    
+
     return L
 
 def F_spatiotemp_euler(rho, w, R, xi, t): 
@@ -83,33 +83,36 @@ def F_spatiotemp_euler(rho, w, R, xi, t):
     
     # L[1:-1] = (F[1:-1] + S[1:-1])*(rho[1:-1]*rho0*(R0/t0))
 
-    ### Version w, xi ###
-    S[1:-1] = -(gamma*rho[1:-1]*K*rho0**(gamma-1))/(rho[1:-1]*R[1:-1]) * ((rho[2:] - rho[:-2])/(2*dxi)) - (rho[1:-1]*rho0)/R[1:-1]*((U0_eq[2:] - U0_eq[:-2])/(2*dxi)) + (rho[1:-1]*rho0*R0*xi[1:-1]*(w[1:-1]*xi[1:-1]*R[1:-1]))/t0 * ((R[2:] - R[:-2])/(2*dt)) - ((R[2:] - R[:-2])/(2*dt))*w[1:-1]*xi[1:-1]
-    F[1:-1] = -(rho[1:-1]*rho0*R0**2*(w[1:-1]*xi[1:-1]))/(t0**2)*(R[1:-1]*w[1:-1] + xi[1:-1]*R[1:-1]*((w[2:]-w[:-2])/(2*dxi))) 
+    # print("max|w²| =", np.max(np.abs(w[1:-1]**2)))
 
-    L[1:-1] = (F[1:-1] + S[1:-1])/(rho[1:-1]*rho0*(R0/t0))/(xi[1:-1]*R[1:-1])
+
+    ### Version w, xi ###
+    S[1:-1] = -(R0/t0)*w[1:-1]**2 - ((gamma*t0)/(xi[1:-1]*R0*R[1:-1]))*((rho[2:]-rho[:-2])/(2*dxi))*K**2*(rho[1:-1]*rho0)**(gamma-2) + ((t0)/(xi[1:-1]*R0*R[1:-1]**2))*((U0_eq[2:]-U0_eq[:-2])/(2*dxi)) + w[1:-1]*(xi[1:-1] - 1/R[1:-1])*((R[2:]-R[:-2])/(2*dt))
+    F[1:-1] = -(R0/t0)*w[1:-1]*xi[1:-1]*((w[2:]-w[:-2])/(2*dxi))
+
+    L[1:-1] = F[1:-1] + S[1:-1]
     
     return L
 
-def F_geometrique(w_inst, xi_inst, R_prec) : # correspond à la dernière valeur de v tel que v va être un float
+def F_geometrique(w, xi, R) : # correspond à la dernière valeur de v tel que v va être un float
     """
     Implémente la fonction géométrique nécessaire pour l'obtention de R(t).
 
     Args :
-        w_inst (float) : [A définir] v_inst/(xi_inst*R_prec) ?
-        xi_inst (float) : Xi instantannée
-        v_inst (float) : Vitesse instantannée 
-        R_prec (float) : Rayon instantannée de l'étoile à neutron à l'instant précédent
+        w (list) : [A définir] v/(xi*R) 
+        xi (list) : idem
+        R (list) : Rayon évolutif de l'étoile à neutron
 
     Returns :
-        float (R_inst) - R_inst est le rayon instantannée obtenu à une vitesse donnée à l'instant t
+        list : (L) - dR/dt
     """
+    L = np.zeros(N)
     ## Version v ##
     # R_inst = R_prec + v_inst[-1]*dt
 
     ## Version w ##
-    R_inst = R_prec + w_inst[-1]*xi_inst[-1]*R_prec*dt
-    return R_inst
+    L[1:-1] = w[1:-1]*xi[1:-1]*R[1:-1]
+    return L
 
 def F_spatiotemp_poisson(rho, R, U): # Faire plus tard. Pour l'instant U = U_eq
     """
@@ -171,8 +174,7 @@ def F_global_geometrique(t,Y):
         function : (F_geometrique) - Permet de calculer la fonction global et d'obtenir son return 
     """
     _ , w , R = Y
-    R_prec = R[-1]
-    return F_geometrique(w, xi,R_prec)
+    return F_geometrique(w, xi,R)
 
 def F_global_poisson(t, Y):
     """ 
@@ -432,7 +434,6 @@ if __name__ == "__main__" :
     v0 = c                          # m.s^-1        - vitesse initiale de l'oscillation
     rho0 = 1.66e17                  # kg.m^-3       - densité initiale de l'étoile à neutron 
     # U0 = v0**2                      # m2^s-1        - Potentiel initial 
-    p0 = K*rho0**gamma              # kg.m^-1.s^-2  - préssion initiale
     R0 = 10e3                       # m             - rayon initial de l'étoile à neutron 
     t0 = R0/v0                      # s             - temps initial d'étude
     xi0 = 1/R0                      # à vérifier (m^-1) # initialiser correctement
@@ -440,11 +441,11 @@ if __name__ == "__main__" :
     # Nombre d'itération
     N = 1000
     
-    xi = np.linspace(0,1,N) # 1 
+    xi = np.linspace(0.001,1,N) # 1 
         
     # Paramètres élémentaires    
-    dxi = xi[-1]/len(xi)    # Pas de [Paramètre]
-    dt = 100/N              # Pas de temps
+    dxi = 1e-6    # Pas de [Paramètre]
+    dt = 1e-6              # Pas de temps
 
     # grandeur numérique remplacement
     tau = np.random.uniform() # 1
@@ -459,15 +460,15 @@ if __name__ == "__main__" :
     r0 = np.sqrt((np.pi*K)/(2*G))                           # m - rayon numérique initiale    
     rho0_eq = rho_c*np.sinc(np.pi*(r/r0))
     U0_eq = -2*K*rho_c*(1+np.sinc(np.pi*(r/r0)))
-    w_eq = 0 
+    w0 = v0/r0 
 
     # Variables d'algorithme 
     h = tau*dt # durée donc cohérence avec l'oscillation des étoiles minutes, heures... ? 
     ### Il est nécessaire que le Y_init soit une liste de liste et non une liste de float... Initialiser les valeurs à un tableau de zéros puis fournir la condition initiale ? ###
 
     # Initialisation des tableaux initiales
-    rho0_list = rho0_eq*np.ones(N)
-    w0_list = w_eq*np.ones(N)
+    rho0_list = rho0_eq
+    w0_list = w0*np.ones(N) # pas de perturbation 
     R0_list = R0*np.ones(N)
 
     
