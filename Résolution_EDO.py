@@ -47,8 +47,8 @@ def F_spatiotemp_continuite(rho, w, R, xi, t):
     # L[1:-1] = F[1:-1] + S[1:-1]
 
     ## Version w , xi ## v0 = w0*r0 ? 
-    S[1:-1] = -2*rho[1:-1]*w[1:-1]*(R0/t0) - rho[1:-1]*(R0/t0)*(w[1:-1]+xi[1:-1]*((w[2:]-w[:-2])/(2*dxi))) + xi[1:-1]*rho[1:-1]*((R[2:]-R[:-2])/(2*dt))
-    F[1:-1] = -xi[1:-1]*w[1:-1]*(R0/t0)*((rho[2:]-rho[:-2])/(2*dxi))
+    S[1:-1] = -2*(rho[1:-1]*w[1:-1]*w0*R0)/xi[1:-1] + rho[1:-1]*(-w0*R0*(((w[2:]-w[:-2])/(2*dxi))*xi[1:-1]+w[1:-1])+xi[1:-1]*((R[2:]-R[:-2])/(2*dt)))
+    F[1:-1] = -w[1:-1]*w0*R0*xi[1:-1]*((rho[2:]-rho[:-2])/(2*dxi))
     
     L[1:-1] = F[1:-1] + S[1:-1]
 
@@ -74,6 +74,8 @@ def F_spatiotemp_euler(rho, w, R, xi, t):
     S = np.zeros(len(w))    # terme source de la fonction - initialisation
     F = np.zeros(len(w))    # terme principal de la fonction - initialisation
     L = np.zeros(len(w))    # terme finale souhaité - initialisation
+    T1 = np.zeros(len(w))
+    T2 = np.zeros(len(w))
 
     ### Version v, xi ###
     
@@ -87,8 +89,17 @@ def F_spatiotemp_euler(rho, w, R, xi, t):
 
 
     ### Version w, xi ###
-    S[1:-1] = -(R0/t0)*w[1:-1]**2 - ((gamma*t0)/(xi[1:-1]*R0*R[1:-1]))*((rho[2:]-rho[:-2])/(2*dxi))*K**2*(rho[1:-1]*rho0)**(gamma-2) + ((t0)/(xi[1:-1]*R0*R[1:-1]**2))*((U0_eq[2:]-U0_eq[:-2])/(2*dxi)) + w[1:-1]*(xi[1:-1] - 1/R[1:-1])*((R[2:]-R[:-2])/(2*dt))
-    F[1:-1] = -(R0/t0)*w[1:-1]*xi[1:-1]*((w[2:]-w[:-2])/(2*dxi))
+    S[1:-1] = -gamma/(xi[1:-1]*R[1:-1]**2*R0*w0)*K**2*(rho[1:-1]*rho0)**(gamma-2)*((rho[2:]-rho[:-2])/(2*dxi))-w[1:-1]**2 - 1/(xi[1:-1]*w0*R0*R[1:-1]**2)*((U0_eq[2:]-U0_eq[:-2])/(2*dxi)) + w[1:-1]*(xi[1:-1]-1/R[1:-1])*((R[2:]-R[:-2])/(2*dt))
+    F[1:-1] = -w[1:-1]*R0*w0*xi[1:-1]*((w[2:]-w[:-2])/(2*dxi))
+
+    # T1[1:-1] = -gamma/(xi[1:-1]*R[1:-1]**2*R0*w0)*K**2*(rho[1:-1]*rho0)**(gamma-2)*((rho[2:]-rho[:-2])/(2*dxi))-w[1:-1]**2
+    # T2[1:-1] = - 1/(xi[1:-1]*w0*R0*R[1:-1]**2)*((U0_eq[2:]-U0_eq[:-2])/(2*dxi))
+
+    # print(np.max(np.abs(T1)))
+    # print(np.max(np.abs(T2)))
+
+    # print(np.argmax(np.abs(T1)))
+    # print(np.argmax(np.abs(T2)))
 
     L[1:-1] = F[1:-1] + S[1:-1]
     
@@ -111,7 +122,7 @@ def F_geometrique(w, xi, R) : # correspond à la dernière valeur de v tel que v
     # R_inst = R_prec + v_inst[-1]*dt
 
     ## Version w ##
-    L[1:-1] = w[1:-1]*xi[1:-1]*R[1:-1]
+    L[1:-1] = w[1:-1]*w0*xi[1:-1]*R[1:-1]*t0
     return L
 
 def F_spatiotemp_poisson(rho, R, U): # Faire plus tard. Pour l'instant U = U_eq
@@ -321,7 +332,7 @@ def AB3_spatiotemp_base(f, Y_init , h, N): # Pour une grandeur
     # Y = [Y2[0].copy(), Y2[1].copy()]
     t = 2*h
 
-    
+
     res = [Y0,Y1,Y2]
     
     # Récupération des valeurs | Problématique sur l'utilisation du temps (ou pas)
@@ -347,7 +358,7 @@ def AB3_spatiotemp_base(f, Y_init , h, N): # Pour une grandeur
         # F2_rho, F2_v = f[0](t_next, Y_next), f[1](t_next, Y_next)
         Y, t = Y_next, t_next
     
-    return res
+    return res, t
 
 #=========================================
 # Utilisation du polynôme Tchebychev (à voir plus tard)
@@ -420,8 +431,8 @@ def sphere_physique(R,theta,phi):
 
 if __name__ == "__main__" :
     
-    # Détermination de grandeur modulable
-    
+    ### Mise en place des variables d'études ###
+        
     # Grandeurs
     c = 3e8                         # m.s-1         - vitesse de la lumière
     gamma = 2                       # 1             - [facteur à définir]
@@ -430,7 +441,7 @@ if __name__ == "__main__" :
     Ms = 1.98e30                    # kg            - masse du soleil 
     M_ns_moy = 1.4*Ms               # kg            - masse moyenne de l'étoile à neutron suposée constante
     
-    # variables initiales
+    # Variables initiales
     v0 = c                          # m.s^-1        - vitesse initiale de l'oscillation
     rho0 = 1.66e17                  # kg.m^-3       - densité initiale de l'étoile à neutron 
     # U0 = v0**2                      # m2^s-1        - Potentiel initial 
@@ -438,24 +449,19 @@ if __name__ == "__main__" :
     t0 = R0/v0                      # s             - temps initial d'étude
     xi0 = 1/R0                      # à vérifier (m^-1) # initialiser correctement
 
-    # Nombre d'itération
-    N = 1000
-    
-    xi = np.linspace(0.001,1,N) # 1 
+    N = 1000 # Nb d'itération
+    xi = np.linspace(0,1,N) # 1 
         
     # Paramètres élémentaires    
     dxi = 1e-6    # Pas de [Paramètre]
-    dt = 1e-6              # Pas de temps
+    dt = 1e-6     # Pas de temps
 
-    # grandeur numérique remplacement
+    # Grandeur numérique remplacement
     tau = np.random.uniform() # 1
-    sigma = np.linspace(0,1,N)
+    sigma = np.linspace(0,1,N) # non utilisé, conservation de xi puisque xi = sqrt(sigma)
     r = xi*R0
 
-    # Implémentation de sigma, tau, w et r dans la suite, ainsi que dans les fonctions précédentes
-    # Relecture de le document de référence
-
-    # variables à l'équilibre
+    # Variables à l'équilibre
     rho_c = 1.9891e18                                       # kg/m-3 - densité de l'étoile à neutron à l'équilibre                     
     r0 = np.sqrt((np.pi*K)/(2*G))                           # m - rayon numérique initiale    
     rho0_eq = rho_c*np.sinc(np.pi*(r/r0))
@@ -464,35 +470,72 @@ if __name__ == "__main__" :
 
     # Variables d'algorithme 
     h = tau*dt # durée donc cohérence avec l'oscillation des étoiles minutes, heures... ? 
-    ### Il est nécessaire que le Y_init soit une liste de liste et non une liste de float... Initialiser les valeurs à un tableau de zéros puis fournir la condition initiale ? ###
 
-    # Initialisation des tableaux initiales
+    ## Initialisation des tableaux initiales
     rho0_list = rho0_eq
     w0_list = w0*np.ones(N) # pas de perturbation 
     R0_list = R0*np.ones(N)
 
-    
     Y = np.array([rho0_list,w0_list,R0_list]) # RK4
     f = [F_global_continuite, F_global_euler, F_global_geometrique]
 
-    # Obtention des grandeurs à étudier 
+    ### Mise en place de l'étude ###
 
-    res_grandeur = AB3_spatiotemp_base(f,Y,h,N)
+    ## Obtention des valeurs recherchées
+
+    res_grandeur,t = AB3_spatiotemp_base(f,Y,h,N)
 
     rho_evolution = [Yg[0] for Yg in res_grandeur] 
-    v_evolution = [Yg[1] for Yg in res_grandeur] 
+    w_evolution = [Yg[1] for Yg in res_grandeur] 
     R_evolution = [Yg[2] for Yg in res_grandeur] 
 
-    # Paramètre pour les sphères représentatives
+    t_evolution = np.arange(0,t,len(t))
+
+    ## Paramètre pour les sphères représentatives pour la représentation graphique
     
     # Variable repère sphérique
     theta = np.arange(0,np.pi,N) # rad
     phi = np.arange(0,2*np.pi,N) # rad
+    # phi, theta = np.meshgrid(phi, theta)
+
+    valeurs_sph_fixes = sphere_numerique(R0, theta, phi) # Coordonnées de la sphère fixe
+    valeurs_sph_oscillantes = sphere_physique(R_evolution, theta, phi) # Coordonnées de la sphère oscillante 
+
+    x_fixe, y_fixe, z_fixe = valeurs_sph_fixes[0], valeurs_sph_fixes[1], valeurs_sph_fixes[2]
+    x_osc, y_osc, z_osc = valeurs_sph_oscillantes[0], valeurs_sph_oscillantes[1], valeurs_sph_oscillantes[3]
+
+    ## Représentation graphique
+
+    fig = plt.figure(dpi=100, figsize=(10,10))
+
+    # Affichage des sphères fixe et mobile
+    ax1 = fig(projection='3d')
+    ax1.plot_wireframe(x_fixe, y_fixe, z_fixe, color='green', alpha=0.1, label = 'sphère numérique - fixe')
+    ax1.plot_wireframe(x_osc, y_osc, z_osc, color='orange', alpha=0.1, label = 'sphère physique - oscillante')
+
+    ax1.set_title("Affichage des sphères numérique et physique de notre étoile à neutron")
+    ax1.set_xlabel("X (m)")
+    ax1.set_ylabel("Y (m)")
+    ax1.set_zlabel("Z (m)")
+    ax1.legend(loc='best')
+    ax1.grid(True)
+
+    # Affichage des différentes grandeurs calculées par rapport au temps
+    ax2 = fig(projetction = '2d')
+    ax2.plot(t_evolution, rho_evolution, '-o', color = 'blue', label = "$\\rho (t)$")
+    ax2.plot(t_evolution, w_evolution, '-o', color = 'purple', label = "$w(t)$")
+    ax2.plot(t_evolution, R_evolution, '-o', color = 'cyan', label = "$R(t)$")
+    ax2.xlabel("temps $t$ en $s$")
+    ax2.ylabel("$\\rho$ en $kg.m^{-3}$ ; $w$ en $.s^{-1}$ ; $R$ en $m$")
+    ax2.title("Evolution des grandeurs au fil du temps \n lors de l'oscillation de l'étoile à neutron")
+    ax2.legend(loc='best')
+    ax2.grid(True)
+
+    # plt.tight_layout()
+    # plt.show()
 
 
 
-
-
     
     
     
@@ -503,4 +546,4 @@ if __name__ == "__main__" :
     
     
     
-    
+     
