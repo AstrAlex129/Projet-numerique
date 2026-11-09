@@ -74,32 +74,18 @@ def F_spatiotemp_euler(rho, w, R, xi, t):
     S = np.zeros(len(w))    # terme source de la fonction - initialisation
     F = np.zeros(len(w))    # terme principal de la fonction - initialisation
     L = np.zeros(len(w))    # terme finale souhaité - initialisation
-    T1 = np.zeros(len(w))
-    T2 = np.zeros(len(w))
 
     ### Version v, xi ###
     
     # Obtention des termes tel que L = F + S 
-    # S[1:-1] = -(gamma*rho[1:-1]*K*rho0**(gamma-1))/(rho[1:-1]*R[1:-1]) * ((rho[2:] - rho[:-2])/(2*dxi)) - (rho[1:-1]*rho0)/R[1:-1] *((U0_eq[2:] - U0_eq[:-2])/(2*dxi)) + (rho[1:-1]*rho0*R0*xi[1:-1]*v[1:-1])/t0 * ((R[2:] - R[:-2])/(2*dt)) 
+    # S[1:-1] = -(gamma*K**2*(rho[1:-1]*rho0)**(gamma-1))/(rho[1:-1]*R[1:-1]) * ((rho[2:] - rho[:-2])/(2*dxi)) - (rho[1:-1]*rho0)/R[1:-1] *((U0_eq[2:] - U0_eq[:-2])/(2*dxi)) + (rho[1:-1]*rho0*R0*xi[1:-1]*v[1:-1])/t0 * ((R[2:] - R[:-2])/(2*dt)) 
     # F[1:-1] = -(rho[1:-1]*rho0*R0**2*v[1:-1])/(t0**2*R[1:-1])*((v[2:] - v[:-2])/(2*dxi))
     
     # L[1:-1] = (F[1:-1] + S[1:-1])*(rho[1:-1]*rho0*(R0/t0))
 
-    # print("max|w²| =", np.max(np.abs(w[1:-1]**2)))
-
-
     ### Version w, xi ###
-    S[1:-1] = -gamma/(xi[1:-1]*R[1:-1]**2*R0*w0)*K**2*(rho[1:-1]*rho0)**(gamma-2)*((rho[2:]-rho[:-2])/(2*dxi))-w[1:-1]**2 - 1/(xi[1:-1]*w0*R0*R[1:-1]**2)*((U0_eq[2:]-U0_eq[:-2])/(2*dxi)) + w[1:-1]*(xi[1:-1]-1/R[1:-1])*((R[2:]-R[:-2])/(2*dt))
+    S[1:-1] = -gamma/(xi[1:-1]*R[1:-1]**2*R0*w0)*K**2*(rho[1:-1]*rho0)**(gamma-2)*((rho[2:]-rho[:-2])/(2*dxi))-w[1:-1]**2*R0*w0 - 1/(xi[1:-1]*w0*R0*R[1:-1]**2)*((U0_eq[2:]-U0_eq[:-2])/(2*dxi)) + w[1:-1]*(xi[1:-1]-1/R[1:-1])*((R[2:]-R[:-2])/(2*dt))
     F[1:-1] = -w[1:-1]*R0*w0*xi[1:-1]*((w[2:]-w[:-2])/(2*dxi))
-
-    # T1[1:-1] = -gamma/(xi[1:-1]*R[1:-1]**2*R0*w0)*K**2*(rho[1:-1]*rho0)**(gamma-2)*((rho[2:]-rho[:-2])/(2*dxi))-w[1:-1]**2
-    # T2[1:-1] = - 1/(xi[1:-1]*w0*R0*R[1:-1]**2)*((U0_eq[2:]-U0_eq[:-2])/(2*dxi))
-
-    # print(np.max(np.abs(T1)))
-    # print(np.max(np.abs(T2)))
-
-    # print(np.argmax(np.abs(T1)))
-    # print(np.argmax(np.abs(T2)))
 
     L[1:-1] = F[1:-1] + S[1:-1]
     
@@ -489,7 +475,7 @@ if __name__ == "__main__" :
     w_evolution = [Yg[1] for Yg in res_grandeur] 
     R_evolution = [Yg[2] for Yg in res_grandeur] 
 
-    t_evolution = np.arange(0,t,len(t))
+    t_evolution = np.arange(0,t,N)
 
     ## Paramètre pour les sphères représentatives pour la représentation graphique
     
@@ -502,14 +488,14 @@ if __name__ == "__main__" :
     valeurs_sph_oscillantes = sphere_physique(R_evolution, theta, phi) # Coordonnées de la sphère oscillante 
 
     x_fixe, y_fixe, z_fixe = valeurs_sph_fixes[0], valeurs_sph_fixes[1], valeurs_sph_fixes[2]
-    x_osc, y_osc, z_osc = valeurs_sph_oscillantes[0], valeurs_sph_oscillantes[1], valeurs_sph_oscillantes[3]
+    x_osc, y_osc, z_osc = valeurs_sph_oscillantes[0], valeurs_sph_oscillantes[1], valeurs_sph_oscillantes[2]
 
     ## Représentation graphique
 
     fig = plt.figure(dpi=100, figsize=(10,10))
 
     # Affichage des sphères fixe et mobile
-    ax1 = fig(projection='3d')
+    ax1 = fig.add_subplot(111, projection='3d')
     ax1.plot_wireframe(x_fixe, y_fixe, z_fixe, color='green', alpha=0.1, label = 'sphère numérique - fixe')
     ax1.plot_wireframe(x_osc, y_osc, z_osc, color='orange', alpha=0.1, label = 'sphère physique - oscillante')
 
@@ -521,7 +507,7 @@ if __name__ == "__main__" :
     ax1.grid(True)
 
     # Affichage des différentes grandeurs calculées par rapport au temps
-    ax2 = fig(projetction = '2d')
+    ax2 = fig
     ax2.plot(t_evolution, rho_evolution, '-o', color = 'blue', label = "$\\rho (t)$")
     ax2.plot(t_evolution, w_evolution, '-o', color = 'purple', label = "$w(t)$")
     ax2.plot(t_evolution, R_evolution, '-o', color = 'cyan', label = "$R(t)$")
@@ -534,7 +520,7 @@ if __name__ == "__main__" :
     # plt.tight_layout()
     # plt.show()
 
-
+ 
 
     
     
